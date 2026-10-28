@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>股價三源交叉比對 & 走勢圖</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<main class="viz-root">
+  <header class="top">
+    <h1>股價三源交叉比對 &amp; 走勢圖</h1>
+    <button id="themeBtn" class="ghost" type="button" title="切換深色/淺色">◐</button>
+  </header>
+
+  <section class="controls" aria-label="查詢條件">
+    <label class="grow">標的（逗號分隔，最多 8 檔）
+      <input id="symbols" type="text" value="QQQ, QLD, TQQQ, 0050, 00631L, 00685L" spellcheck="false">
+    </label>
+    <label>開始日
+      <input id="start" type="date">
+    </label>
+    <label>結束日
+      <input id="end" type="date">
+    </label>
+    <div class="presets" role="group" aria-label="快速區間">
+      <button type="button" data-p="1M">1月</button>
+      <button type="button" data-p="3M">3月</button>
+      <button type="button" data-p="6M">6月</button>
+      <button type="button" data-p="YTD">今年</button>
+      <button type="button" data-p="1Y">1年</button>
+      <button type="button" data-p="3Y">3年</button>
+      <button type="button" data-p="5Y">5年</button>
+    </div>
+    <button id="run" class="primary" type="button">抓取並比對</button>
+  </section>
+
+  <details class="advanced">
+    <summary>進階設定</summary>
+    <div class="adv-grid">
+      <label>比對精度（小數位）
+        <input id="decimals" type="number" min="0" max="6" value="2">
+      </label>
+      <label>取平均的容許偏離（±%）
+        <input id="tolPct" type="number" min="0" step="0.1" value="1">
+      </label>
+      <label class="grow">FinMind Token（選填，提高流量上限）
+        <input id="fmToken" type="text" placeholder="可留空" spellcheck="false">
+      </label>
+      <label class="grow">Yahoo Finance 的 CORS Proxy（選填，填了才會加入 Yahoo 為第 4 個來源）
+        <input id="yProxy" type="text" placeholder="例：https://your-worker.workers.dev/?url={url}" spellcheck="false">
+      </label>
+    </div>
+    <p class="note">
+      美股來源：CNBC、鉅亨網 cnyes、FinMind；台股來源：臺灣證交所 TWSE、鉅亨網 cnyes、FinMind。
+      Google Finance 沒有公開的歷史報價 API，Yahoo Finance 不允許瀏覽器跨網域讀取（無 CORS），
+      因此在純靜態的 github.io 頁面上預設不使用；若您自備 proxy 可在上方加入 Yahoo。
+      只比對每日收盤價：各來源完全相同直接採用；3 個以上來源不同但都在平均值 ±1% 內則取平均；
+      超過 ±1%（或只有 2 個來源且不同）則列為警示。
+      比對時所有來源都換算成「未還原分割」的原始價，走勢圖則使用「分割調整後」的採用收盤價（未含股息）。
+    </p>
+  </details>
+
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+
+  <section class="card" id="summaryCard" hidden>
+    <h2>交叉比對結果</h2>
+    <div id="summary" class="summary"></div>
+  </section>
+
+  <section class="card" id="chartCard" hidden>
+    <div class="card-head">
+      <h2>價格走勢</h2>
+      <div class="chart-opts">
+        <div class="seg" role="group" aria-label="顯示方式">
+          <button type="button" data-mode="pct">累積報酬 %</button>
+          <button type="button" data-mode="price">價格</button>
+        </div>
+        <label class="inline"><input id="logScale" type="checkbox"> 對數座標</label>
+      </div>
+    </div>
+    <div id="legend" class="legend"></div>
+    <div class="zoom-bar">
+      <span id="zoomInfo" class="zoom-info"></span>
+      <button id="zoomReset" type="button" class="ghost" hidden>重設縮放</button>
+    </div>
+    <div class="chart-wrap"><canvas id="chart" aria-label="價格走勢圖" role="img"></canvas></div>
+    <div class="marker-head">
+      <h3>縱軸觀察線比較</h3>
+      <div class="chart-opts">
+        <label class="inline">日期 <input id="markerDate" type="date"></label>
+        <button id="markerAdd" type="button">新增觀察線</button>
+        <button id="markerClear" type="button" class="ghost" hidden>清除全部</button>
+      </div>
+    </div>
+    <div id="markerTable" class="summary"></div>
+  </section>
+
+  <section class="card" id="detailCard" hidden>
+    <div class="card-head">
+      <h2>逐日收盤價明細</h2>
+      <div class="chart-opts">
+        <label class="inline">標的 <select id="detailSym"></select></label>
+        <label class="inline"><input id="onlyDiff" type="checkbox" checked> 只顯示警示 / 缺漏</label>
+        <button id="csvBtn" type="button" class="ghost">下載 CSV</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="detail"></table></div>
+  </section>
+
+  <footer class="foot">資料僅供參考，不構成投資建議。資料來源版權屬各網站所有。</footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
